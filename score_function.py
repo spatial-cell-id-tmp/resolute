@@ -23,8 +23,14 @@ def bic_score(original_adata, clustering_algorithm='leiden', dim_reduction = 'pc
         string_r = str(r)
         clustering_name = '%s_res%s' %(clustering_algorithm,string_r)
         print('Clustering by using the resolution %.2f, step %i of %i' %(r,index+1,len(res)))
-        sc.tl.leiden(adata, key_added="%s_res%s" %(clustering_algorithm,string_r), resolution=r)
-
+        if clustering_algorithm == 'leiden':
+            sc.tl.leiden(adata, key_added="%s_res%s" %(clustering_algorithm,string_r), resolution=r)
+        elif clustering_algorithm == 'louvain':
+            sc.tl.louvain(adata, key_added="%s_res%s" %(clustering_algorithm,string_r), resolution=r)
+        else:
+            print('please choose louvain or leiden as clustering_algorithm')
+            exit
+            
         n_points = len(adata.obs[clustering_name])
         n_clusters = len(set(adata.obs[clustering_name]))
         n_dimensions = adata.obsm[dim_reduction].shape[1]
