@@ -1,25 +1,26 @@
 # Optimum resolution
 
 
-This function aims to find the optimum resolution parameter for clustering single-cell RNA-Seq data analyzed with _scanpy_, by calculating the BIC score of each clustering.
+This function aims to find the optimum resolution parameter for clustering single-cell RNA-Seq data analyzed with _scanpy_, by calculating the BIC score or the Calinski-Harabasz score of each clustering.
 
 It has been inspired by this [read](https://towardsdatascience.com/are-you-still-using-the-elbow-method-5d271b3063bd) and then adapted to the single-cell analysis in scanpy.
 
-Here, the minimum of the BIC score indicates the optimum resolution parameter.
+Here, the minimum of the BIC or Calinski-Harabasz score indicates the optimum resolution parameter.
 
 ### Nedeed libraries
-
+numpy, scanpy, sklearn
 
 
 ### Usage
 ```python
-bic_score(original_adata, clustering_algorithm='leiden', dim_reduction = 'pca', min_res=0.1, max_res=2.0, step=0.1, plot=True)
+clustering_score(original_adata, score_value = 'bic', clustering_algorithm='leiden', dim_reduction = 'pca', min_res=0.1, max_res=2.0, step=0.1, plot=True)
 ```
 
 To use the function, simply copy it from score_function.py and use in your own script.
 
 #### Parameters:
 * original_adata: the AnnData file containing the normalized and scaled data and dimensionality reductions (_PCA_ and _UMAP_ or _tsne_)
+* score_value = the chosen score to evaluate the different clusterings. Possible choices: **bic**,**calinski**. Default: **'calinski'**
 * clustering_algorithm: the algorithm to use to test the different clustering (string). Possible choices: **leiden**,**louvain**. Default: **'leiden'**.
 * dim_reduction: coordinates to use for calculating the BIC score (string). Possible choices: **pca**, **umap**. Default: **'pca'**.
 * min_res: minimum resolution to test (float). Default: **0.1**.
