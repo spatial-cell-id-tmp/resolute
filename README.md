@@ -38,18 +38,24 @@ Where:
 In the function, the Calinski-Harabasz score was calculated by using the function _calinski_harabasz_score()_ from _sklearn_ library, which takes as an input PCA or UMAP coordinates of each cell and a vector with the claster label of each cell.
 For the purpose of plotting, -1*CH is defined to be the output, so then the lowest score indicates better-defined and well-separated clusters, as it happens with BIC score.
 
-### Nedeed libraries
-numpy, scanpy, sklearn
+### Dependencies
+numpy, scanpy, sklearn, joblib
 
 
 ### Usage
 
+Install by pip:
 
-```python
-clustering_score(original_adata, score_value = 'bic', clustering_algorithm='leiden', dim_reduction = 'pca', min_res=0.1, max_res=2.0, step=0.1, plot=True)
+```bash
+pip install bachclue 
 ```
 
-To use the function, simply copy it from score_function.py and use in your own script.
+Run:
+
+```python
+bc.clustering_score(original_adata, score_value = 'bic', clustering_algorithm='leiden', dim_reduction = 'pca', min_res=0.1, max_res=2.0, step=0.1, plot=True)
+```
+
 
 #### Parameters:
 * original_adata: the AnnData file containing the normalized and scaled data and dimensionality reductions (_PCA_ and _UMAP_ or _tsne_)
@@ -69,7 +75,7 @@ The function returns two outputs:
 Note that the function does not add any clustering metadata into the original AnnData file.
 
 ### Example:
-The notebook _score_function.ipynb_ contains and example usage of the function. Data consist of 3k PBMCs from a Healthy Donor and are freely available from 10x Genomics, and can be download as follows from a terminal:
+The notebook _tests/score_function_3kPBMC.ipynb_ contains and example usage of the function. Data consist of 3k PBMCs from a Healthy Donor and are freely available from 10x Genomics, and can be download as follows from a terminal:
 ```bash
 wget http://cf.10xgenomics.com/samples/cell-exp/1.1.0/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz -O data/pbmc3k_filtered_gene_bc_matrices.tar.gz
 ```
