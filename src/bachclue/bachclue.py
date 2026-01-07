@@ -46,11 +46,21 @@ def compute_clustering_score(r, original_adata, score_value, clustering_algorith
     return r, score_value, n_clusters
 
 
-def clustering_score(original_adata, score_value='bic', clustering_algorithm='leiden',
+def clustering_score(original_adata, score_value='bic', clustering_algorithm='leiden', flavor='scanpy'
                       dim_reduction='pca', min_res=0.1, max_res=2.0, step=0.1, plot=True):
     """Compute clustering scores over a range of resolutions in parallel using Joblib."""
     sc.settings.verbosity = 0  # Suppress Scanpy verbosity
 
+    if flavor == 'stereo':
+        try:
+            import stereo as st
+            original_adata = st.io.stereo_to_anndata(original_adata, flavor='scanpy')
+            print("Stereo-seq data has been converted to Scanpy-compatible AnnData object")
+        except ImportError as e:
+            print("Exception occurred:", e)
+            print("To use flavor='stereo', please run pip install stereopy")
+                  
+    
     # Validate dimensionality reduction
     if dim_reduction == 'pca':
         dim_reduction = 'X_pca'
@@ -64,10 +74,7 @@ def clustering_score(original_adata, score_value='bic', clustering_algorithm='le
     
     # Determine number of available CPU cores
     num_cores = min(multiprocessing.cpu_count(), len(resolutions))
-    print(f"Performing {len(resolutions)} parallel clusterings")
-    print(f"Using {num_cores}/{multiprocessing.cpu_count()} CPU cores")
-    
-    print(f"Starting parallel computation with Joblib using {num_cores} cores...")
+    print(f"Performing {len(resolutions)} parallel clusterings, using {num_cores}/{multiprocessing.cpu_count()} CPU cores")
     
     results = Parallel(n_jobs=num_cores, backend="loky")(
         delayed(compute_clustering_score)(r, original_adata, score_value, clustering_algorithm, dim_reduction) 

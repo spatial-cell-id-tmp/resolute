@@ -1,6 +1,6 @@
 # BaCHClue: Bic and Calinski-Harabasz Score Guided Clustering
 
-BaCHClue aims to find the optimal resolution parameter for clustering single-cell RNA-Seq data analyzed with _scanpy_, by calculating the BIC score or the Calinski-Harabasz score of each clustering, given a range of possible resolutions.
+BaCHClue is a Python tool for selecting the optimal clustering resolution in Scanpy-based single-cell and spatial transcriptomics analyses. It evaluates multiple clustering resolutions by computing statistical validation metrics such as the Bayesian Information Criterion (BIC) and the Calinski–Harabasz score, allowing users to choose a resolution based on quantitative, reproducible criteria rather than manual trial-and-error. This helps identify biologically meaningful cluster structures in high-dimensional single-cell RNA-seq and spatial transcriptomics data.
 
 Here, the minimum of the BIC or Calinski-Harabasz score indicates the optimal resolution parameter.
 
@@ -10,9 +10,11 @@ The BIC (Bayesian Information Criterion) score is a statistical measure used  to
 The BIC score derives from Bayesian probability theory and is based on the likelihood function of the data given a particular model. It balances the trade-off between model complexity (the number of parameters in the model) and the goodness of fit to the data. The goal is to find a model that fits the data well while penalizing overly complex models that may overfit the data.
 
 In the function, the BIC score was manually implemented by using the formula:
+
 ```math
 BIC = -2*log(L) + k*log(N)
 ```
+
 Where:
 - L is the likelihood of the data given the model;
 - k is the number of parameters in the model;
@@ -53,7 +55,7 @@ pip install bachclue
 Run:
 
 ```python
-bc.clustering_score(original_adata, score_value = 'bic', clustering_algorithm='leiden', dim_reduction = 'pca', min_res=0.1, max_res=2.0, step=0.1, plot=True)
+bc.clustering_score(original_adata, score_value='bic', clustering_algorithm='leiden', flavor='scanpy', dim_reduction='pca', min_res=0.1, max_res=2.0, step=0.1, plot=True)
 ```
 
 
@@ -61,6 +63,7 @@ bc.clustering_score(original_adata, score_value = 'bic', clustering_algorithm='l
 * original_adata: the AnnData file containing the normalized and scaled data and dimensionality reductions (_PCA_ and _UMAP_ or _tsne_)
 * score_value = the chosen score to evaluate the different clusterings. Possible choices: **bic**,**calinski**. Default: **'calinski'**
 * clustering_algorithm: the algorithm to use to test the different clustering (string). Possible choices: **leiden**,**louvain**. Default: **'leiden'**.
+* flavor: choose between the default scanpy and stereo-seq flavor (string). Possible choices: **scanpy**,**stereo**.
 * dim_reduction: coordinates to use for calculating the BIC score (string). Possible choices: **pca**, **umap**. Default: **'pca'**.
 * min_res: minimum resolution to test (float). Default: **0.1**.
 * max_res: maximum resolution to test (float). Default: **2.0**.
