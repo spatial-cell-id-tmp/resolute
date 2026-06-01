@@ -79,7 +79,7 @@ sc.pp.neighbors(adata, use_rep='X_pca')
 sc.tl.umap(adata)
 
 # Run RESOLUTE Optimization
-results = bc.run_resolute(
+results = rs.run_resolute(
     adata=adata, 
     score_value='calinski', 
     use_rep='X_umap',           # Embedding for evaluating cluster geometry

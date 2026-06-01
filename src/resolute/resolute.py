@@ -351,9 +351,11 @@ def plot_resolute(df_score, best_res_score, score_metric, df_stab=None, best_res
     fig, axes = plt.subplots(1, num_plots, figsize=(8 * num_plots, 5))
     if num_plots == 1:
         axes = [axes]
-        
+
+    from matplotlib.ticker import MultipleLocator
     def _draw_axis(ax, df, metric_col, best_res, title):
         ax.plot(df['resolution'], df[metric_col], marker='o', linestyle='-', color='tab:blue', label=metric_col)
+        ax.xaxis.set_major_locator(MultipleLocator(0.1))
         ax.set_xlabel('Resolution', fontsize=12)
         ax.set_ylabel(f'Score ({metric_col})', color='tab:blue', fontsize=12)
         ax.tick_params(axis='y', labelcolor='tab:blue')
