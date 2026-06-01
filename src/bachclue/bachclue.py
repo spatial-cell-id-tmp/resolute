@@ -137,10 +137,12 @@ def clustering_score(original_adata,
     return df, best_res
 
 
+import gc
+
 def compute_stability_for_resolution(resolution, light_adata, clustering_algorithm='leiden', neighbors_key=None, n_iterations=50, use_rep='X_pca'):
     warnings.filterwarnings('ignore', category=RuntimeWarning)
     
-    adata = light_adata.copy()
+    adata = light_adata
     n_cells = adata.n_obs
     
     # Ground Truth Evaluation on the full pre-existing graph structure
@@ -152,14 +154,12 @@ def compute_stability_for_resolution(resolution, light_adata, clustering_algorit
     orig_cluster_labels = adata.obs['original_cluster'].values.astype(str)
     unique_orig_clusters = np.sort(adata.obs['original_cluster'].unique().astype(int))
     
-    # History matrices to track exactly what happens in each bootstrap iteration
     H_samp = np.zeros((n_cells, n_iterations), dtype=np.int8)
     H_clust = np.full((n_cells, n_iterations), -1, dtype=np.int32)
     
-    # Bypass Scanpy's connectivities naming bug by falling back to None 
-    # if the requested key is the default 'neighbors'.
     safe_neighbors_key = None if neighbors_key == 'neighbors' else neighbors_key
     
+    # Bootstrapping loop
     for t in range(n_iterations):
         subset_indices = np.random.choice(n_cells, size=int(0.8 * n_cells), replace=False)
         
@@ -183,57 +183,100 @@ def compute_stability_for_resolution(resolution, light_adata, clustering_algorit
         H_samp[subset_indices, t] = 1
         H_clust[subset_indices, t] = boot_codes
 
-    # Reconstruct exact pair-wise consensus metrics cluster by cluster on-the-fly
+        subset_light.obsp.clear() 
+        subset_light.uns.clear()
+        del subset_light
+        del boot_codes
+        gc.collect()
+
+    # Reconstruction loop
     cluster_stats = []
     cluster_to_indices = {cl: np.where(orig_cluster_labels == str(cl))[0] for cl in unique_orig_clusters}
     
+    # We lock the max dense allocation matrix size to CHUNK_SIZE x N_i
+    CHUNK_SIZE = 2500 
+
     for i in unique_orig_clusters:
         idx_i = cluster_to_indices[i]
         if len(idx_i) <= 1:
             cluster_stats.append(np.nan)
             continue
             
-        # Self-stability: block_ii math reconstructed exactly
-        H_samp_i = H_samp[idx_i, :].astype(np.float32)
-        block_ii_samp = H_samp_i @ H_samp_i.T
+        # Extract full arrays for cluster 'i' once
+        H_samp_i_full = H_samp[idx_i, :].astype(np.float32)
+        H_clust_i_full = H_clust[idx_i, :]
         
-        block_ii_co = np.zeros((len(idx_i), len(idx_i)), dtype=np.float32)
-        H_clust_i = H_clust[idx_i, :]
-        for t in range(n_iterations):
-            vals_t = H_clust_i[:, t]
-            unique_vals = np.unique(vals_t)
-            for k in unique_vals:
-                if k == -1: continue
-                mask = (vals_t == k)
-                block_ii_co += np.outer(mask, mask)
+        # Self-stability: Chunked block_ii math
+        sum_stability_i = 0.0
+        count_stability_i = 0
+        
+        for start in range(0, len(idx_i), CHUNK_SIZE):
+            end = min(start + CHUNK_SIZE, len(idx_i))
+            chunk_idx = idx_i[start:end]
+            
+            H_samp_chunk = H_samp[chunk_idx, :].astype(np.float32)
+            block_ii_samp_chunk = H_samp_chunk @ H_samp_i_full.T
+            block_ii_samp_chunk[block_ii_samp_chunk == 0] = 1.0
+            
+            block_ii_co_chunk = np.zeros((len(chunk_idx), len(idx_i)), dtype=np.float32)
+            H_clust_chunk = H_clust[chunk_idx, :]
+            
+            for t in range(n_iterations):
+                vals_chunk = H_clust_chunk[:, t]
+                vals_full = H_clust_i_full[:, t]
+                unique_vals = np.unique(vals_chunk)
+                for k in unique_vals:
+                    if k == -1: continue
+                    block_ii_co_chunk += np.outer(vals_chunk == k, vals_full == k)
+                    
+            consensus_chunk = block_ii_co_chunk / block_ii_samp_chunk
+            
+            # Fill the chunk's relative diagonal with NaN mathematically
+            for r in range(len(chunk_idx)):
+                consensus_chunk[r, start + r] = np.nan
                 
-        block_ii_samp[block_ii_samp == 0] = 1.0
-        block_ii_consensus = block_ii_co / block_ii_samp
-        np.fill_diagonal(block_ii_consensus, np.nan)
-        stability_i = np.nanmean(block_ii_consensus)
+            sum_stability_i += np.nansum(consensus_chunk)
+            count_stability_i += np.count_nonzero(~np.isnan(consensus_chunk))
+            
+        stability_i = sum_stability_i / count_stability_i if count_stability_i > 0 else np.nan
         
-        # Confusion blocks: block_ij math reconstructed exactly
+        # Confusion blocks: Chunked block_ij math
         max_confusion_i = 0.0
         for j in unique_orig_clusters:
             if i == j: continue
             idx_j = cluster_to_indices[j]
             if len(idx_j) == 0: continue
             
-            H_samp_j = H_samp[idx_j, :].astype(np.float32)
-            block_ij_samp = H_samp_i @ H_samp_j.T
+            sum_confusion_ij = 0.0
+            count_confusion_ij = 0
             
-            block_ij_co = np.zeros((len(idx_i), len(idx_j)), dtype=np.float32)
-            H_clust_j = H_clust[idx_j, :]
-            for t in range(n_iterations):
-                vals_i = H_clust_i[:, t]
-                vals_j = H_clust_j[:, t]
-                common_vals = np.intersect1d(vals_i, vals_j)
-                for k in common_vals:
-                    if k == -1: continue
-                    block_ij_co += np.outer(vals_i == k, vals_j == k)
-                    
-            block_ij_samp[block_ij_samp == 0] = 1.0
-            confusion_ij = np.mean(block_ij_co / block_ij_samp)
+            H_samp_j_full = H_samp[idx_j, :].astype(np.float32)
+            H_clust_j_full = H_clust[idx_j, :]
+            
+            for start in range(0, len(idx_i), CHUNK_SIZE):
+                end = min(start + CHUNK_SIZE, len(idx_i))
+                chunk_idx = idx_i[start:end]
+                
+                H_samp_chunk = H_samp[chunk_idx, :].astype(np.float32)
+                block_ij_samp_chunk = H_samp_chunk @ H_samp_j_full.T
+                block_ij_samp_chunk[block_ij_samp_chunk == 0] = 1.0
+                
+                block_ij_co_chunk = np.zeros((len(chunk_idx), len(idx_j)), dtype=np.float32)
+                H_clust_chunk = H_clust[chunk_idx, :]
+                
+                for t in range(n_iterations):
+                    vals_chunk = H_clust_chunk[:, t]
+                    vals_full_j = H_clust_j_full[:, t]
+                    common_vals = np.intersect1d(vals_chunk, vals_full_j)
+                    for k in common_vals:
+                        if k == -1: continue
+                        block_ij_co_chunk += np.outer(vals_chunk == k, vals_full_j == k)
+                        
+                confusion_chunk = block_ij_co_chunk / block_ij_samp_chunk
+                sum_confusion_ij += np.sum(confusion_chunk)
+                count_confusion_ij += confusion_chunk.size
+                
+            confusion_ij = sum_confusion_ij / count_confusion_ij if count_confusion_ij > 0 else 0.0
             if confusion_ij > max_confusion_i:
                 max_confusion_i = confusion_ij
                 
@@ -374,7 +417,7 @@ def run_bachclue(adata,
     
     df_stab, best_res_stab = None, None
     if compute_stability:
-        print("\n--- Running Bootstrap Stability Analysis ---")
+        print("\n--- Running Bootstrap Stability Analysis (optimized) ---")
         df_stab, best_res_stab = run_parallel_stability(
             adata=adata,
             min_res=min_res,
