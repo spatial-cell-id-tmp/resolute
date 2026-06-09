@@ -3,6 +3,10 @@
 <img title="resolute" alt="Alt text" src="resources/RESOLUTE_logo.png">
 
 
+> [!WARNING]  
+> This package is under development. Expect major/breaking changes.
+
+
 RESOLUTE is a Python package designed for selecting the optimal clustering resolution in Scanpy-based single-cell and spatial transcriptomics analyses.
 
 In high-dimensional transcriptomic data, clustering algorithms (like Leiden or Louvain) rely heavily on a user-defined resolution parameter, which dictates the granularity of the resulting cell populations. Traditionally, selecting this resolution involves manual, subjective trial-and-error. RESOLUTE eliminates this ambiguity by evaluating multiple clustering resolutions across a defined range and computing statistical validation metrics. This allows researchers to identify biologically meaningful cluster structures based on quantitative, reproducible criteria.
@@ -61,7 +65,7 @@ numpy, scanpy, sklearn, joblib
 Install by pip:
 
 ```bash
-pip install resolute 
+pip install sc-resolute # yet to publish under new name. To try latest stable version, run: pip install bachclue
 ```
 
 RESOLUTE integrates smoothly into standard Scanpy workflows. It is highly recommended to run your standard preprocessing pipeline (PCA, neighbor graph computation, UMAP) before executing the tool.
