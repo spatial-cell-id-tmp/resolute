@@ -44,6 +44,8 @@ RESOLUTE addresses this challenge by providing an objective framework for resolu
 
 # State of the field   
 
+Focus on differences with MultiK and clustertree
+
 Several tools exist for cluster optimization, such as clustree in the R ecosystem. While clustree is excellent for visualizing cluster stability across resolutions, it is primarily an interactive visualization tool and does not provide an automated "optimal choice" recommendation for high-throughput automated pipelines.
 
 We chose to build RESOLUTE rather than contributing to existing R-based packages because the current standard for single-cell analysis in many research institutions—including the ENS de Lyon—is increasingly centered on the Scanpy (Python) framework. RESOLUTE fills a specific gap by offering an integrated, Python solution that functions natively within the AnnData object structure, avoiding the memory overhead of converting data between R and Python environments. Its unique contribution is the automated, quantitative ranking of resolutions based on the consistency of the biological signal, rather than merely relying on visual inspection.
