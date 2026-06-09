@@ -42,7 +42,11 @@ In practice, researchers often perform resolution selection by manually adjustin
 
 RESOLUTE addresses this challenge by providing an objective framework for resolution selection. It systematically evaluates potential clustering resolutions post-hoc using robust statistical metrics, specifically the Bayesian Information Criterion (BIC) and the Calinski-Harabasz score. Furthermore, RESOLUTE assesses clustering stability through a bootstrapping procedure, offering bioinformaticians a mathematically and statistically grounded starting point for their downstream analyses. By doing that, RESOLUTE minimizes subjective bias, and potentially enhances the reproducibility of single-cell data analysis workflows.
 
-# State of the field                                                                                                                  
+# State of the field   
+
+Several tools exist for cluster optimization, such as clustree in the R ecosystem. While clustree is excellent for visualizing cluster stability across resolutions, it is primarily an interactive visualization tool and does not provide an automated "optimal choice" recommendation for high-throughput automated pipelines.
+
+We chose to build RESOLUTE rather than contributing to existing R-based packages because the current standard for single-cell analysis in many research institutions—including the ENS de Lyon—is increasingly centered on the Scanpy (Python) framework. RESOLUTE fills a specific gap by offering an integrated, Python solution that functions natively within the AnnData object structure, avoiding the memory overhead of converting data between R and Python environments. Its unique contribution is the automated, quantitative ranking of resolutions based on the consistency of the biological signal, rather than merely relying on visual inspection.
 
 Several tools exist for galactic dynamics computations:                                                     
 `galpy` [@Bovy:2015] is a Python package with similar goals,
